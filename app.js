@@ -74,7 +74,8 @@ const importDataToExcel = async (data, filePath) => {
             'Product Name',
             'Beschreibung',
             'OENummer Hersteller',
-            'K-Types'
+            'K-Types',
+            'Document Links'
         ]);
 
         const row2 = worksheet2.addRow([
@@ -106,6 +107,7 @@ const importDataToExcel = async (data, filePath) => {
         returnValid(data.joinedDetailContent),
         returnValid(data.joinedBoxRefNums),
         returnValid(data.ktypes),
+        returnValid(data.pdfLinks)
     ]);
 
 
@@ -179,6 +181,8 @@ const scrapeProductDetail = async (page) => {
         const productDetails = await page.evaluate(() => {
             const productName = document.querySelector('.art-name span.ml.anchor')?.textContent.trim();
             const detailContent = document.querySelector('.art-articleCriteria')?.textContent.trim();
+            const pdfLinks = [...document.querySelectorAll('.pdfLink')].map(pdf => pdf?.href)?.join(' , ');
+
             const boxRefNumbers = [];
 
             const boxRefNmbrBtn = document.querySelector('div[data-content-id="artInfoBoxRefNbrs"]');
@@ -199,11 +203,14 @@ const scrapeProductDetail = async (page) => {
             const joinedDetailContent = splittedDetailContent?.join('; ');
             return {
                 productName,
+                pdfLinks,
                 splittedDetailContent,
                 joinedDetailContent,
                 joinedBoxRefNums
             }
         });
+
+
 
         let isArtInfoFound = await page.evaluate(() => {
             const artInfoBoxBtn = document.querySelector('div[data-content-id="artInfoBoxTypes"]');
@@ -280,26 +287,26 @@ const scrapeProductDetail = async (page) => {
 
 const main = async () => {
     const PRODUCTS = readExcelFile('./products2.xlsx');
-    let browser = await puppeteer.launch({ headless: true });
+    let browser = await puppeteer.launch({ headless: false });
 
 
-    for (let i = 13000; i < 15000; i++) {
+    for (let i = 0; i < 10000; i++) {
         try {
             if (i % 50 === 0) {
                 await browser.close();
-                browser = await puppeteer.launch({ headless: true });
+                browser = await puppeteer.launch({ headless: false });
             }
             const { product_ean, product_sku, product_manufacturer_name } = PRODUCTS[i];
             const pageUrl = `https://www.kfzteile24.de/artikelsuche?search=${product_sku}&searchType=artnrOenr`;
             const page = await browser.newPage();
 
-            await page.setDefaultTimeout(15000);
+            await page.setDefaultTimeout(18000);
 
             await page.goto(pageUrl);
 
             const prodDetails = await scrapeProductDetail(page);
 
-            let filePath = `final_products_${Math.ceil((i - 11000) / 500)}.xlsx`
+            let filePath = `final_products_${Math.ceil((i + 1) / 500)}.xlsx`
 
             await importDataToExcel({ product_ean, product_sku, product_manufacturer_name, ...prodDetails }, filePath);
             console.log(i);
