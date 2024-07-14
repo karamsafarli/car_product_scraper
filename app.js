@@ -287,14 +287,15 @@ const scrapeProductDetail = async (page) => {
 
 const main = async () => {
     const PRODUCTS = readExcelFile('./products2.xlsx');
-    let browser = await puppeteer.launch({ headless: false });
+    let browser = await puppeteer.launch({ headless: true });
 
 
-    for (let i = 0; i < 10000; i++) {
+    for (let i = 0; i < PRODUCTS.length; i++) {
         try {
             if (i % 50 === 0) {
+                console.clear();
                 await browser.close();
-                browser = await puppeteer.launch({ headless: false });
+                browser = await puppeteer.launch({ headless: true });
             }
             const { product_ean, product_sku, product_manufacturer_name } = PRODUCTS[i];
             const pageUrl = `https://www.kfzteile24.de/artikelsuche?search=${product_sku}&searchType=artnrOenr`;
