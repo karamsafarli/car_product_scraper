@@ -162,7 +162,10 @@ const scrapeProductDetail = async (page, prodName) => {
     // const isNothingFound = await checkForNothingFound(page);
     // if (isNothingFound) return;
 
-    if (prodName === '-' || prodName === null) return;
+    if (prodName === '-' || prodName === null) {
+        console.log('skipped')
+        return;
+    }
 
     try {
         await page.waitForSelector('.art-name .anchor');
@@ -318,7 +321,7 @@ const main = async () => {
     let browser = await puppeteer.launch({ headless: true });
 
 
-    for (let i = 0; i < 50000; i++) {
+    for (let i = 50000; i < 100000; i++) {
         try {
             if (i % 50 === 0) {
                 console.clear();
@@ -340,7 +343,7 @@ const main = async () => {
 
             const prodDetails = await scrapeProductDetail(page, prodName);
 
-            let filePath = `final_products_${Math.ceil((i + 1) / 500)}.xlsx`
+            let filePath = `final_products_${Math.ceil((i + 1 - 50000) / 500)}.xlsx`
 
             await importDataToExcel({
                 product_ean,
