@@ -318,7 +318,7 @@ const main = async () => {
     let browser = await puppeteer.launch({ headless: true });
 
 
-    for (let i = 0; i < PRODUCTS.length; i++) {
+    for (let i = 0; i < 50000; i++) {
         try {
             if (i % 50 === 0) {
                 console.clear();
