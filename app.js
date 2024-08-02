@@ -2,7 +2,7 @@ const { readExcelFile } = require('./data');
 const puppeteer = require('puppeteer-extra');
 const ExcelJS = require('exceljs');
 const fs = require('fs');
-const KTYPES = readExcelFile('./ktypes.xlsx');
+// const KTYPES = readExcelFile('./ktypes.xlsx');
 
 
 function normalizeEngineParams(params, zyl) {
@@ -27,11 +27,11 @@ function getPartBeforeParenthesis(str) {
     return match ? match[0].trim() : "";
 }
 
-const KTYPESMAP = new Map();
-KTYPES.forEach((entry) => {
-    const key = `${entry['Marke_Make_EN'].toUpperCase()} ${entry['Modell_Model_EN']} ${normalizeEngineParams(entry['Motor_Engine_EN'], entry['Anzahl der Baujahre'])}`;
-    KTYPESMAP.set(key, entry['K-Type'])
-});
+// const KTYPESMAP = new Map();
+// KTYPES.forEach((entry) => {
+//     const key = `${entry['Marke_Make_EN'].toUpperCase()} ${entry['Modell_Model_EN']} ${normalizeEngineParams(entry['Motor_Engine_EN'], entry['Anzahl der Baujahre'])}`;
+//     KTYPESMAP.set(key, entry['K-Type'])
+// });
 
 
 
@@ -60,13 +60,13 @@ const importDataToExcel = async (data, filePath) => {
         workbook = new ExcelJS.Workbook();
         await workbook.xlsx.readFile(filePath);
         worksheet = workbook.getWorksheet('Products');
-        worksheet2 = workbook.getWorksheet('ExtraSheet_2');
-        worksheet3 = workbook.getWorksheet('ExtraSheet_3');
+        // worksheet2 = workbook.getWorksheet('ExtraSheet_2');
+        // worksheet3 = workbook.getWorksheet('ExtraSheet_3');
     } else {
         workbook = new ExcelJS.Workbook();
         worksheet = workbook.addWorksheet('Products');
-        worksheet2 = workbook.addWorksheet('ExtraSheet_2');
-        worksheet3 = workbook.addWorksheet('ExtraSheet_3');
+        // worksheet2 = workbook.addWorksheet('ExtraSheet_2');
+        // worksheet3 = workbook.addWorksheet('ExtraSheet_3');
         const row = worksheet.addRow([
             'product_ean',
             'product_sku',
@@ -75,61 +75,73 @@ const importDataToExcel = async (data, filePath) => {
             'Beschreibung',
             'OENummer Hersteller',
             'K-Types',
-            'Document Links'
+            'Document Links',
+            'Price',
+            'UVP',
+            'Image URLs',
+            'Manufacturer Logo',
+            'Hilfreiche Artikel',
+            'Breadcrumb'
         ]);
 
-        const row2 = worksheet2.addRow([
-            'product_ean',
-            'product_sku',
-            'product_manufacturer_name',
-            'Product Name',
-            'Beschreibung'
-        ]);
+        // const row2 = worksheet2.addRow([
+        //     'product_ean',
+        //     'product_sku',
+        //     'product_manufacturer_name',
+        //     'Product Name',
+        //     'Beschreibung'
+        // ]);
 
-        const row3 = worksheet3.addRow([
-            'product_ean',
-            'product_sku',
-            'product_manufacturer_name',
-            'Product Name',
-            'OENummer Hersteller'
-        ]);
+        // const row3 = worksheet3.addRow([
+        //     'product_ean',
+        //     'product_sku',
+        //     'product_manufacturer_name',
+        //     'Product Name',
+        //     'OENummer Hersteller'
+        // ]);
 
         row.font = { color: { argb: 'FF305496' }, bold: true, size: 12 };
-        row2.font = { color: { argb: 'FF305496' }, bold: true, size: 12 };
-        row3.font = { color: { argb: 'FF305496' }, bold: true, size: 12 };
+        // row2.font = { color: { argb: 'FF305496' }, bold: true, size: 12 };
+        // row3.font = { color: { argb: 'FF305496' }, bold: true, size: 12 };
     }
 
     worksheet.addRow([
         returnValid(data.product_ean),
         returnValid(data.product_sku),
         returnValid(data.product_manufacturer_name),
-        returnValid(data.productName),
-        returnValid(data.joinedDetailContent),
-        returnValid(data.joinedBoxRefNums),
-        returnValid(data.ktypes),
-        returnValid(data.pdfLinks)
+        returnValid(data.prodName),
+        returnValid(data.prodDet),
+        returnValid(data.prodModels),
+        returnValid(data.prodKtypes),
+        returnValid(data.prodPDF),
+        `${returnValid(data.price)} €`,
+        `${returnValid(data.uvp)} €`,
+        returnValid(data.imageUrls),
+        returnValid(data.logo),
+        returnValid(data.articles),
+        returnValid(data.breadCrumb)
     ]);
 
 
-    returnValid(data.splittedDetailContent, true).forEach((sdc) => {
-        worksheet2.addRow([
-            returnValid(data.product_ean),
-            returnValid(data.product_sku),
-            returnValid(data.product_manufacturer_name),
-            returnValid(data.productName),
-            sdc
-        ]);
-    });
+    // returnValid(data.splittedDetailContent, true).forEach((sdc) => {
+    //     worksheet2.addRow([
+    //         returnValid(data.product_ean),
+    //         returnValid(data.product_sku),
+    //         returnValid(data.product_manufacturer_name),
+    //         returnValid(data.productName),
+    //         sdc
+    //     ]);
+    // });
 
-    returnValid(data.joinedBoxRefNums).split(',').forEach((brn) => {
-        worksheet3.addRow([
-            returnValid(data.product_ean),
-            returnValid(data.product_sku),
-            returnValid(data.product_manufacturer_name),
-            returnValid(data.productName),
-            brn
-        ]);
-    });
+    // returnValid(data.joinedBoxRefNums).split(',').forEach((brn) => {
+    //     worksheet3.addRow([
+    //         returnValid(data.product_ean),
+    //         returnValid(data.product_sku),
+    //         returnValid(data.product_manufacturer_name),
+    //         returnValid(data.productName),
+    //         brn
+    //     ]);
+    // });
 
     await workbook.xlsx.writeFile(filePath);
 
@@ -146,10 +158,11 @@ const checkForNothingFound = async (page) => {
 }
 
 
-const scrapeProductDetail = async (page) => {
+const scrapeProductDetail = async (page, prodName) => {
+    // const isNothingFound = await checkForNothingFound(page);
+    // if (isNothingFound) return;
 
-    const isNothingFound = await checkForNothingFound(page);
-    if (isNothingFound) return;
+    if (prodName === '-' || prodName === null) return;
 
     try {
         await page.waitForSelector('.art-name .anchor');
@@ -169,7 +182,6 @@ const scrapeProductDetail = async (page) => {
 
 
 
-
         const detailUrl = await page.evaluate(() => {
             return document.querySelectorAll('.art-name a.anchor.underline')[0]?.href;
         });
@@ -179,104 +191,120 @@ const scrapeProductDetail = async (page) => {
         await page.waitForSelector('.art-name');
 
         const productDetails = await page.evaluate(() => {
-            const productName = document.querySelector('.art-name span.ml.anchor')?.textContent.trim();
-            const detailContent = document.querySelector('.art-articleCriteria')?.textContent.trim();
-            const pdfLinks = [...document.querySelectorAll('.pdfLink')].map(pdf => pdf?.href)?.join(' , ');
+            // const productName = document.querySelector('.art-name span.ml.anchor')?.textContent.trim();
+            // const detailContent = document.querySelector('.art-articleCriteria')?.textContent.trim();
+            // const pdfLinks = [...document.querySelectorAll('.pdfLink')].map(pdf => pdf?.href)?.join(' , ');
 
-            const boxRefNumbers = [];
+            // const boxRefNumbers = [];
 
-            const boxRefNmbrBtn = document.querySelector('div[data-content-id="artInfoBoxRefNbrs"]');
+            // const boxRefNmbrBtn = document.querySelector('div[data-content-id="artInfoBoxRefNbrs"]');
 
-            if (boxRefNmbrBtn) {
-                boxRefNmbrBtn.click();
-                const table = document.querySelector('table.custArea');
-                const trs = [...table.querySelectorAll('tr')];
-                trs.slice(1).map((tr) => {
-                    const td1 = tr.querySelectorAll('td')[0]?.textContent.trim();
-                    const td2 = tr.querySelectorAll('td')[1]?.textContent.trim();
-                    boxRefNumbers.push(`${td1} ${td2}`);
-                });
+            // if (boxRefNmbrBtn) {
+            //     boxRefNmbrBtn.click();
+            //     const table = document.querySelector('table.custArea');
+            //     const trs = [...table.querySelectorAll('tr')];
+            //     trs.slice(1).map((tr) => {
+            //         const td1 = tr.querySelectorAll('td')[0]?.textContent.trim();
+            //         const td2 = tr.querySelectorAll('td')[1]?.textContent.trim();
+            //         boxRefNumbers.push(`${td1} ${td2}`);
+            //     });
+            // }
+
+            // const joinedBoxRefNums = boxRefNumbers.join(', ')
+            // const splittedDetailContent = detailContent?.split('\n');
+            // const joinedDetailContent = splittedDetailContent?.join('; ');
+
+
+            let imageUrls = [...document.querySelectorAll('#art-thumbnail-container img')]?.map(img => img?.src)?.join(' , ');
+
+            if (!imageUrls || imageUrls.length === 0) {
+                imageUrls = document.querySelector('.art-thumbnail-img')?.src;
             }
 
-            const joinedBoxRefNums = boxRefNumbers.join(', ')
-            const splittedDetailContent = detailContent?.split('\n');
-            const joinedDetailContent = splittedDetailContent?.join('; ');
+            const logo = document.querySelector('.art-logo img')?.src;
+            const price = document.querySelector('.preis .priceTypeGross')?.textContent;
+            const uvp = document.querySelector('.art-uvp .priceTypeGross')?.textContent;
+            const breadCrumb = [...document.querySelectorAll('.breadcrumb li a span')]?.map(bc => bc?.textContent?.trim())?.join(' > ');
+            const articles = [...document.querySelectorAll('.articleContainer .articleDetails')].map((art) => {
+                const title = art.querySelector('a')?.textContent?.trim();
+                const subtitle = art.querySelector('span')?.textContent?.trim();
+                return `${title} ${subtitle}`
+            })?.join('; ');
+           
+
             return {
-                productName,
-                pdfLinks,
-                splittedDetailContent,
-                joinedDetailContent,
-                joinedBoxRefNums
+                imageUrls,
+                logo,
+                price,
+                uvp,
+                breadCrumb,
+                articles
             }
         });
 
 
 
-        let isArtInfoFound = await page.evaluate(() => {
-            const artInfoBoxBtn = document.querySelector('div[data-content-id="artInfoBoxTypes"]');
-            if (artInfoBoxBtn) {
-                artInfoBoxBtn.click();
-                return true;
-            }
-            return false;
-        });
+        // let isArtInfoFound = await page.evaluate(() => {
+        //     const artInfoBoxBtn = document.querySelector('div[data-content-id="artInfoBoxTypes"]');
+        //     if (artInfoBoxBtn) {
+        //         artInfoBoxBtn.click();
+        //         return true;
+        //     }
+        //     return false;
+        // });
 
-        const kTypesFromScrapedProds = [];
-
-
-        if (isArtInfoFound) {
-            await page.waitForSelector('table.custArea.min640');
-
-            const artInfoDetails = await page.evaluate(() => {
-                const artInfo = [];
+        // const kTypesFromScrapedProds = [];
 
 
-                const table2 = document.querySelector('table.custArea.min640');
-                const trs2 = [...table2.querySelectorAll('tr')];
+        // if (isArtInfoFound) {
+        //     await page.waitForSelector('table.custArea.min640');
 
-                trs2.forEach(row => {
-                    const cells = row.querySelectorAll('td');
-                    if (cells.length === 3) {
-                        const modelElement = cells[0].querySelector('b');
-                        if (modelElement) {
-                            const carModel = modelElement.innerText.trim() + ' ' + (modelElement.nextElementSibling ? modelElement.nextElementSibling.innerText.trim() : '');
-
-                            const tdText = cells[0].innerText.split('\n');
-
-                            tdText.shift();
-
-                            const carEngineParams = tdText.join(' ').trim();
-
-                            artInfo.push({
-                                carModel: carModel.trim(),
-                                carEngineParams: carEngineParams.replace(/\s+/g, ' ')
-                            });
-                        }
-
-                    }
-                });
-
-                return artInfo;
-            });
+        //     const artInfoDetails = await page.evaluate(() => {
+        //         const artInfo = [];
 
 
-            artInfoDetails.forEach((aid) => {
-                const carModel = getPartBeforeParenthesis(aid.carModel);
+        //         const table2 = document.querySelector('table.custArea.min640');
+        //         const trs2 = [...table2.querySelectorAll('tr')];
 
-                const ktype = KTYPESMAP.get(`${carModel} ${aid.carEngineParams}`);
+        //         trs2.forEach(row => {
+        //             const cells = row.querySelectorAll('td');
+        //             if (cells.length === 3) {
+        //                 const modelElement = cells[0].querySelector('b');
+        //                 if (modelElement) {
+        //                     const carModel = modelElement.innerText.trim() + ' ' + (modelElement.nextElementSibling ? modelElement.nextElementSibling.innerText.trim() : '');
 
-                if (ktype) {
-                    kTypesFromScrapedProds.push(ktype);
-                }
+        //                     const tdText = cells[0].innerText.split('\n');
 
-            })
-        }
+        //                     tdText.shift();
+
+        //                     const carEngineParams = tdText.join(' ').trim();
+
+        //                     artInfo.push({
+        //                         carModel: carModel.trim(),
+        //                         carEngineParams: carEngineParams.replace(/\s+/g, ' ')
+        //                     });
+        //                 }
+
+        //             }
+        //         });
+
+        //         return artInfo;
+        //     });
 
 
-        return {
-            ...productDetails,
-            ktypes: kTypesFromScrapedProds.join(', ')
-        }
+        //     artInfoDetails.forEach((aid) => {
+        //         const carModel = getPartBeforeParenthesis(aid.carModel);
+
+        //         const ktype = KTYPESMAP.get(`${carModel} ${aid.carEngineParams}`);
+
+        //         if (ktype) {
+        //             kTypesFromScrapedProds.push(ktype);
+        //         }
+
+        //     })
+        // }
+
+        return productDetails;
     } catch (error) {
         console.log('Error while scraping the page', error)
 
@@ -286,7 +314,7 @@ const scrapeProductDetail = async (page) => {
 }
 
 const main = async () => {
-    const PRODUCTS = readExcelFile('./products2.xlsx');
+    const PRODUCTS = readExcelFile('./all_prods.xlsx');
     let browser = await puppeteer.launch({ headless: true });
 
 
@@ -298,6 +326,11 @@ const main = async () => {
                 browser = await puppeteer.launch({ headless: true });
             }
             const { product_ean, product_sku, product_manufacturer_name } = PRODUCTS[i];
+            const prodName = PRODUCTS[i]['Product Name'];
+            const prodDet = PRODUCTS[i]['Beschreibung'];
+            const prodModels = PRODUCTS[i]['OENummer Hersteller'];
+            const prodKtypes = PRODUCTS[i]['K-Types'];
+            const prodPDF = PRODUCTS[i]['Document Links'];
             const pageUrl = `https://www.kfzteile24.de/artikelsuche?search=${product_sku}&searchType=artnrOenr`;
             const page = await browser.newPage();
 
@@ -305,11 +338,21 @@ const main = async () => {
 
             await page.goto(pageUrl);
 
-            const prodDetails = await scrapeProductDetail(page);
+            const prodDetails = await scrapeProductDetail(page, prodName);
 
             let filePath = `final_products_${Math.ceil((i + 1) / 500)}.xlsx`
 
-            await importDataToExcel({ product_ean, product_sku, product_manufacturer_name, ...prodDetails }, filePath);
+            await importDataToExcel({
+                product_ean,
+                product_sku,
+                product_manufacturer_name,
+                prodName,
+                prodDet,
+                prodModels,
+                prodKtypes,
+                prodPDF,
+                ...prodDetails
+            }, filePath);
             console.log(i);
 
             await page.close();
