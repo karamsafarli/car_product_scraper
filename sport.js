@@ -5,27 +5,65 @@ const { readExcelFile } = require('./data');
 
 const getRecruitFormLink = async (page, url) => {
     try {
-        await page.goto(`${url}/sports/softball`);
+        await page.goto(url);
 
-        
+
+        const isSkip = await page.evaluate(() => {
+            const link = [...document.querySelectorAll('a')].find((l) => l?.textContent.trim().toLowerCase() === 'continue to softball home');
+
+            if (link) {
+                link.click();
+                return true
+            }
+
+            return false
+        });
+
+        if (isSkip) {
+            await page.waitForNavigation();
+        }
 
         const recruitFormLinks = await page.evaluate(() => {
             const links = [...document.querySelectorAll('a')];
-            const possibleLinks = [];
+
             for (let i = 0; i < links.length; i++) {
                 if (
-                    links[i]?.textContent.toLowerCase().includes('recruit') ||
-                    links[i]?.textContent.toLowerCase().includes('recruit questionnaire') ||
-                    links[i]?.textContent.toLowerCase().includes('recruiting questionnaire') ||
-                    links[i]?.textContent.toLowerCase().includes('prospective student-athletes') 
+                    links[i]?.textContent.trim().toLowerCase() === 'recruit questionnaire' ||
+                    links[i]?.textContent.trim().toLowerCase() === 'recruiting questionnaire' ||
+                    links[i]?.textContent.trim().toLowerCase() === 'prospective student-athlete questionnaire' ||
+                    links[i]?.textContent.trim().toLowerCase() === 'prospective athlete' ||
+                    links[i]?.textContent.trim().toLowerCase() === 'prospective student athlete questionnaire'
                 ) {
-                    possibleLinks.push(links[i]?.href)
+                    return links[i]?.href;
                 }
             }
 
 
+            const possibleLinks = [];
+            for (let i = 0; i < links.length; i++) {
+                if (
+                    (
+                        links[i]?.textContent.toLowerCase().includes('recruit') ||
+                        links[i]?.textContent.toLowerCase().includes('questionnaire') ||
+                        links[i]?.textContent.toLowerCase().includes('recruit questionnaire') ||
+                        links[i]?.textContent.toLowerCase().includes('recruiting questionnaire') ||
+                        links[i]?.textContent.toLowerCase().includes('prospective student-athletes') ||
+                        links[i]?.textContent.toLowerCase().includes('prospective student-athlete questionnaire') ||
+                        links[i]?.textContent.toLowerCase().includes('prospective student athletes') ||
+                        links[i]?.textContent.toLowerCase().includes('prospect questionnaire')
+                    ) &&
+                    links[i]?.textContent.toLowerCase().includes('alumni questionnaire')
+                ) {
+                    if (!possibleLinks.includes(links[i]?.href)) {
+                        possibleLinks.push(links[i]?.href)
+                    }
+                }
+            }
+
+            let recruitingFormLink;
+
             if (possibleLinks.length === 1) {
-                return possibleLinks[0]
+                recruitingFormLink = possibleLinks[0]
             }
             else {
                 for (let i = 0; i < possibleLinks.length; i++) {
@@ -33,10 +71,20 @@ const getRecruitFormLink = async (page, url) => {
                         possibleLinks[i].includes('questionnaires.armssoftware') ||
                         possibleLinks[i].includes('armssoftware')
                     ) {
-                        return possibleLinks[i]
+                        recruitingFormLink = possibleLinks[i]
+                    }
+                }
+
+                if (!recruitingFormLink) {
+                    for (let i = 0; i < possibleLinks.length; i++) {
+                        if (possibleLinks[i].includes('recruit') || possibleLinks[i].includes('questionnaire')) {
+                            recruitingFormLink = possibleLinks[i]
+                        }
                     }
                 }
             }
+
+            return recruitingFormLink
 
         });
 
@@ -88,6 +136,8 @@ const main = async () => {
     const browser = await puppeteer.launch({ headless: false });
     const page = await browser.newPage();
 
+    await page.setDefaultTimeout(45000);
+
     let requestCount = 0;
     await page.setRequestInterception(true);
     page.on('request', (request) => {
@@ -108,7 +158,7 @@ const main = async () => {
         let recruitForm = softballExcelData[i]['Softball Recruitment Form'];
 
         if (!recruitForm) {
-            recruitForm = await getRecruitFormLink(page, website) || '';
+            recruitForm = await getRecruitFormLink(page, rosterUrl) || '';
         }
 
         await importDataToExcel({
@@ -117,9 +167,9 @@ const main = async () => {
             rosterUrl,
             coachesUrl,
             recruitForm
-        }, './sports_data.xlsx')
+        }, './sports_data_3.xlsx')
 
-        console.log(`${i} ${school}`)
+        console.log(`${i}. ${school} - ${recruitForm}`)
     }
 
 
