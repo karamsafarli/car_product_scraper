@@ -222,7 +222,7 @@ const main = async () => {
     //     }
     // });
 
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < baseballExcelData.length; i++) {
         const school = baseballExcelData[i]['School'];
         const nickname = baseballExcelData[i]['Nickname'];
         const city = baseballExcelData[i]['City'];
