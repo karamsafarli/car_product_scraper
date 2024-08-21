@@ -200,7 +200,7 @@ const importDataToExcel = async (data, filePath) => {
 
 const main = async () => {
     const baseballExcelData = readExclFile2('./sports.xlsx');
-    const browser = await puppeteer.launch({ headless: false });
+    const browser = await puppeteer.launch({ headless: true });
     const page = await browser.newPage();
 
     await page.setViewport({
@@ -231,7 +231,7 @@ const main = async () => {
         const athleticWebsite = baseballExcelData[i]['Athletic Websites'];
         const staffDir = baseballExcelData[i]['Staff Directory'];
         let rosterUrl = '', coachesUrl = '', recruitForm = '';
-        
+
         if (athleticWebsite) {
             rosterUrl = `${athleticWebsite}/sports/baseball/roster`;
             coachesUrl = `${athleticWebsite}/sports/baseball/coaches`;
