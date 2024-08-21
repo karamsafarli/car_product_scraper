@@ -1,15 +1,21 @@
 const fs = require('fs');
 const ExcelJS = require('exceljs');
 const puppeteer = require('puppeteer');
-const { readExcelFile } = require('./data');
+const { readExclFile2 } = require('./data');
 
-const getRecruitFormLink = async (page, url) => {
+const websiteUrls = [];
+
+const getRecruitFormLink = async (page, url, idx) => {
     try {
         await page.goto(url);
 
+        const title = await page.title();
+
+        websiteUrls.push(`${idx}. ${title} - ${url}`)
+
 
         const isSkip = await page.evaluate(() => {
-            const link = [...document.querySelectorAll('a')].find((l) => l?.textContent.trim().toLowerCase() === 'continue to softball home');
+            const link = [...document.querySelectorAll('a')].find((l) => l?.textContent.trim().toLowerCase() === 'continue to baseball home');
 
             if (link) {
                 link.click();
@@ -27,12 +33,8 @@ const getRecruitFormLink = async (page, url) => {
 
         const recruitFormLinks = await page.evaluate(() => {
             let nav = [...document.querySelectorAll('nav')];
-            if (nav.length === 1) {
-                nav = nav[0]
-            } 
-            else {
-                nav = nav[nav.length - 1]
-            }
+            nav = nav[nav.length - 1];
+
             const links = [...nav?.querySelectorAll('a')];
 
             for (let i = 0; i < links.length; i++) {
@@ -46,9 +48,14 @@ const getRecruitFormLink = async (page, url) => {
                         links[i]?.textContent.trim().toLowerCase() === 'recruits' ||
                         links[i]?.textContent.trim().toLowerCase() === 'questionnaire' ||
                         links[i]?.textContent.trim().toLowerCase() === 'athletic questionnaire' ||
-                        links[i]?.textContent.trim().toLowerCase() === 'softball recruiting questionnaire' ||
-                        links[i]?.textContent.trim().toLowerCase() === 'softball recruitment form' ||
-                        links[i]?.textContent.trim().toLowerCase() === 'softball recruitment questionnaire' ||
+                        links[i]?.textContent.trim().toLowerCase() === 'baseball recruiting questionnaire' ||
+                        links[i]?.textContent.trim().toLowerCase() === 'baseball recruiting questionnaire form' ||
+                        links[i]?.textContent.trim().toLowerCase() === 'baseball recruit questionnaire form' ||
+                        links[i]?.textContent.trim().toLowerCase() === 'baseball recruitment form' ||
+                        links[i]?.textContent.trim().toLowerCase() === 'baseball recruitment questionnaire' ||
+                        links[i]?.textContent.trim().toLowerCase() === 'baseball recruit form' ||
+                        links[i]?.textContent.trim().toLowerCase() === 'baseball recruiting form' ||
+                        links[i]?.textContent.trim().toLowerCase() === 'baseball recruitment' ||
                         links[i]?.textContent.trim().toLowerCase() === 'recruiting questionnaire form' ||
                         links[i]?.textContent.trim().toLowerCase() === 'recruiting' ||
                         links[i]?.textContent.trim().toLowerCase() === 'recruiting form' ||
@@ -56,6 +63,8 @@ const getRecruitFormLink = async (page, url) => {
                         links[i]?.textContent.trim().toLowerCase() === 'recruitment form' ||
                         links[i]?.textContent.trim().toLowerCase() === 'recruit' ||
                         links[i]?.textContent.trim().toLowerCase() === 'prospective student-athletes' ||
+                        links[i]?.textContent.trim().toLowerCase() === 'prospective student-athlete' ||
+                        links[i]?.textContent.trim().toLowerCase() === 'prospective student athlete' ||
                         links[i]?.textContent.trim().toLowerCase() === 'prospective student-athlete questionnaire' ||
                         links[i]?.textContent.trim().toLowerCase() === 'prospective questionnaire' ||
                         links[i]?.textContent.trim().toLowerCase() === 'prospect questionnaire' ||
@@ -74,6 +83,8 @@ const getRecruitFormLink = async (page, url) => {
                         links[i]?.textContent.trim().toLowerCase() === 'prospective student athletes' ||
                         links[i]?.textContent.trim().toLowerCase() === 'recruit me' ||
                         links[i]?.textContent.trim().toLowerCase() === 'recruit me!' ||
+                        links[i]?.textContent.trim().toLowerCase() === 'get recruited' ||
+                        links[i]?.textContent.trim().toLowerCase() === 'get recruited!' ||
                         links[i]?.textContent.trim().toLowerCase() === 'be recruited' ||
                         links[i]?.textContent.trim().toLowerCase() === 'be recruited!' ||
                         links[i]?.textContent.trim().toLowerCase() === 'prospective student athlete questionnaire'
@@ -148,16 +159,21 @@ const importDataToExcel = async (data, filePath) => {
     if (fs.existsSync(filePath)) {
         workbook = new ExcelJS.Workbook();
         await workbook.xlsx.readFile(filePath);
-        worksheet = workbook.getWorksheet('Softball');
+        worksheet = workbook.getWorksheet('Baseball');
     } else {
         workbook = new ExcelJS.Workbook();
-        worksheet = workbook.addWorksheet('Softball');
+        worksheet = workbook.addWorksheet('Baseball');
         const row = worksheet.addRow([
             'School',
+            'Nickname',
+            'City',
+            'State',
+            'School Website',
             'Athletic Websites',
             '2024-25 Roster URL',
             '2024-25 Coaches URL',
-            'Softball Recruitment Form'
+            'Staff Directory',
+            'Baseball Recruitment Form'
         ]);
 
 
@@ -167,24 +183,28 @@ const importDataToExcel = async (data, filePath) => {
 
     worksheet.addRow([
         data.school,
-        data.website,
+        data.nickname,
+        data.city,
+        data.state,
+        data.schoolWebsite,
+        data.athleticWebsite,
         data.rosterUrl,
         data.coachesUrl,
+        data.staffDir,
         data.recruitForm
     ]);
-
 
     await workbook.xlsx.writeFile(filePath);
 }
 
 
 const main = async () => {
-    const softballExcelData = readExcelFile('./sports.xlsx');
+    const baseballExcelData = readExclFile2('./sports.xlsx');
     const browser = await puppeteer.launch({ headless: false });
     const page = await browser.newPage();
 
     await page.setViewport({
-        width: 1280,  
+        width: 1280,
         height: 800
     });
 
@@ -202,28 +222,40 @@ const main = async () => {
     //     }
     // });
 
-    for (let i = 0; i < softballExcelData.length; i++) {
-        const school = softballExcelData[i]['School'];
-        const website = softballExcelData[i]['Athletic Websites'];
-        const rosterUrl = softballExcelData[i]['2024-25 Roster URL'];
-        const coachesUrl = softballExcelData[i]['2024-25 Coaches URL'];
-        let recruitForm = softballExcelData[i]['Softball Recruitment Form'];
-
-        if (!recruitForm) {
-            recruitForm = await getRecruitFormLink(page, rosterUrl) || '';
+    for (let i = 0; i < 10; i++) {
+        const school = baseballExcelData[i]['School'];
+        const nickname = baseballExcelData[i]['Nickname'];
+        const city = baseballExcelData[i]['City'];
+        const state = baseballExcelData[i]['State'];
+        const schoolWebsite = baseballExcelData[i]['School Website'];
+        const athleticWebsite = baseballExcelData[i]['Athletic Websites'];
+        const staffDir = baseballExcelData[i]['Staff Directory'];
+        let rosterUrl = '', coachesUrl = '', recruitForm = '';
+        
+        if (athleticWebsite) {
+            rosterUrl = `${athleticWebsite}/sports/baseball/roster`;
+            coachesUrl = `${athleticWebsite}/sports/baseball/coaches`;
+            recruitForm = await getRecruitFormLink(page, rosterUrl, i) || '';
         }
 
         await importDataToExcel({
             school,
-            website,
+            nickname,
+            city,
+            state,
+            schoolWebsite,
+            athleticWebsite,
             rosterUrl,
             coachesUrl,
+            staffDir,
             recruitForm
-        }, './sports_data.xlsx')
+        }, './baseball_data.xlsx')
 
         console.log(`${i}. ${school} - ${recruitForm}`)
     }
 
+
+    fs.writeFileSync('./baseball_urls.txt', websiteUrls.join('\n'), 'utf8');
 
 
     await browser.close();
@@ -231,5 +263,3 @@ const main = async () => {
 
 main();
 
-// Skip Permanently
-// Continue to Softball Home

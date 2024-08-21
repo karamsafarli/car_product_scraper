@@ -13,8 +13,20 @@ const readExcelFile = (filePath) => {
 };
 
 
+const readExclFile2 = (filePath) => {
+    const workbook = xlsx.readFile(filePath);
 
-module.exports = { readExcelFile }
+    const firstSheetName = workbook.SheetNames[1];
+
+    const worksheet = workbook.Sheets[firstSheetName];
+
+    const data = xlsx.utils.sheet_to_json(worksheet);
+
+    return data;
+}
+
+
+module.exports = { readExcelFile, readExclFile2 }
 
 
 
