@@ -200,7 +200,13 @@ const importDataToExcel = async (data, filePath) => {
 
 const main = async () => {
     const baseballExcelData = readExclFile2('./sports.xlsx');
-    const browser = await puppeteer.launch({ headless: true });
+    const browser = await puppeteer.launch({
+        headless: true,
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+        ]
+    });
     const page = await browser.newPage();
 
     await page.setViewport({
