@@ -1,7 +1,7 @@
 const fs = require('fs');
 const ExcelJS = require('exceljs');
 const puppeteer = require('puppeteer');
-const { readExclFile2 } = require('./data');
+const { readExclFile2, readExcelFile } = require('./data');
 
 const websiteUrls = [];
 
@@ -9,25 +9,41 @@ const getRecruitFormLink = async (page, url, idx) => {
     try {
         await page.goto(url);
 
-        const title = await page.title();
+        // const title = await page.title();
 
-        websiteUrls.push(`${idx}. ${title} - ${url}`)
+        // websiteUrls.push(`${idx}. ${title} - ${url}`)
 
+        await page.waitForSelector('h1');
 
-        const isSkip = await page.evaluate(() => {
-            const link = [...document.querySelectorAll('a')].find((l) => l?.textContent.trim().toLowerCase() === 'continue to baseball home');
+        const isNotFound = await page.evaluate(() => {
+            const notFoundElement = [...document.querySelectorAll('h1')].find(el => el?.textContent.trim().toLowerCase().includes('page not found'));
 
-            if (link) {
-                link.click();
-                return true
-            }
+            if (notFoundElement) return true;
 
-            return false
+            return false;
         });
 
-        if (isSkip) {
-            await page.waitForNavigation();
+
+        if (isNotFound) {
+            return { recruitFormLinks: '', isCorrectUrl: true };
         }
+
+
+
+        // const isSkip = await page.evaluate(() => {
+        //     const link = [...document.querySelectorAll('a')].find((l) => l?.textContent.trim().toLowerCase() === 'continue to baseball home');
+
+        //     if (link) {
+        //         link.click();
+        //         return true
+        //     }
+
+        //     return false
+        // });
+
+        // if (isSkip) {
+        //     await page.waitForNavigation();
+        // }
 
         await page.waitForSelector('nav');
 
@@ -37,7 +53,7 @@ const getRecruitFormLink = async (page, url, idx) => {
 
             const links = [...nav?.querySelectorAll('a')];
 
-            for (let i = 0; i < links.length; i++) {
+            for (let i = links.length - 1; i >= 0; i--) {
                 if (
                     (
                         links[i]?.textContent.trim().toLowerCase() === 'recruit questionnaire' ||
@@ -67,6 +83,7 @@ const getRecruitFormLink = async (page, url, idx) => {
                         links[i]?.textContent.trim().toLowerCase() === 'prospective student athlete' ||
                         links[i]?.textContent.trim().toLowerCase() === 'prospective student-athlete questionnaire' ||
                         links[i]?.textContent.trim().toLowerCase() === 'prospective questionnaire' ||
+                        links[i]?.textContent.trim().toLowerCase() === 'prospective player questionnaire' ||
                         links[i]?.textContent.trim().toLowerCase() === 'prospect questionnaire' ||
                         links[i]?.textContent.trim().toLowerCase() === 'prospective student-athlete questionnaire form' ||
                         links[i]?.textContent.trim().toLowerCase() === 'prospective student-athlete recruitment form' ||
@@ -87,7 +104,9 @@ const getRecruitFormLink = async (page, url, idx) => {
                         links[i]?.textContent.trim().toLowerCase() === 'get recruited!' ||
                         links[i]?.textContent.trim().toLowerCase() === 'be recruited' ||
                         links[i]?.textContent.trim().toLowerCase() === 'be recruited!' ||
-                        links[i]?.textContent.trim().toLowerCase() === 'prospective student athlete questionnaire'
+                        links[i]?.textContent.trim().toLowerCase() === 'prospective student athlete questionnaire' ||
+                        links[i]?.textContent.trim().toLowerCase() === 'recruit information' ||
+                        links[i]?.textContent.trim().toLowerCase() === 'recruitment information'
                     ) &&
                     links[i]?.href.includes('http')
                 ) {
@@ -146,9 +165,10 @@ const getRecruitFormLink = async (page, url, idx) => {
 
         });
 
-        return recruitFormLinks;
+        return { recruitFormLinks, isCorrectUrl: true };
     } catch (error) {
-        return;
+        console.log(error)
+        return { recruitFormLinks: '', isCorrectUrl: true };
     }
 }
 
@@ -199,13 +219,13 @@ const importDataToExcel = async (data, filePath) => {
 
 
 const main = async () => {
-    const baseballExcelData = readExclFile2('./sports.xlsx');
+    const baseballExcelData = readExcelFile('./baseball_data.xlsx');
     const browser = await puppeteer.launch({
         headless: true,
-        args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-        ]
+        // args: [
+        //     '--no-sandbox',
+        //     '--disable-setuid-sandbox',
+        // ]
     });
     const page = await browser.newPage();
 
@@ -214,19 +234,19 @@ const main = async () => {
         height: 800
     });
 
-    await page.setDefaultTimeout(45000);
+    await page.setDefaultTimeout(15000);
 
     // let requestCount = 0;
-    // await page.setRequestInterception(true);
-    // page.on('request', (request) => {
-    //     const resourceType = request.resourceType();
+    await page.setRequestInterception(true);
+    page.on('request', (request) => {
+        const resourceType = request.resourceType();
 
-    //     if (['image', 'stylesheet', 'font'].includes(resourceType)) {
-    //         request.abort();
-    //     } else {
-    //         request.continue();
-    //     }
-    // });
+        if (['image', 'stylesheet', 'font'].includes(resourceType)) {
+            request.abort();
+        } else {
+            request.continue();
+        }
+    });
 
     for (let i = 0; i < baseballExcelData.length; i++) {
         const school = baseballExcelData[i]['School'];
@@ -236,12 +256,21 @@ const main = async () => {
         const schoolWebsite = baseballExcelData[i]['School Website'];
         const athleticWebsite = baseballExcelData[i]['Athletic Websites'];
         const staffDir = baseballExcelData[i]['Staff Directory'];
-        let rosterUrl = '', coachesUrl = '', recruitForm = '';
+        let rosterUrl = '',
+            coachesUrl = '',
+            recruitForm = baseballExcelData[i]['Baseball Recruitment Form'];
 
-        if (athleticWebsite) {
-            rosterUrl = `${athleticWebsite}/sports/baseball/roster`;
-            coachesUrl = `${athleticWebsite}/sports/baseball/coaches`;
-            recruitForm = await getRecruitFormLink(page, rosterUrl, i) || '';
+        if (athleticWebsite && !recruitForm) {
+            rosterUrl = athleticWebsite.includes('https') ? `${athleticWebsite}/sports/baseball/roster` : `https://${athleticWebsite}/sports/baseball/roster`;
+            coachesUrl = athleticWebsite.includes('https') ? `${athleticWebsite}/sports/baseball/coaches` : `https://${athleticWebsite}/sports/baseball/coaches`;
+            const { recruitFormLinks, isCorrectUrl } = await getRecruitFormLink(page, rosterUrl, i);
+
+            recruitForm = recruitFormLinks;
+
+            if (!isCorrectUrl) {
+                rosterUrl = athleticWebsite.includes('https') ? `${athleticWebsite}/sports/bsb/2024-25/roster` : `https://${athleticWebsite}/sports/bsb/2024-25/roster`;
+                coachesUrl = athleticWebsite.includes('https') ? `${athleticWebsite}/sports/bsb/coaches/index` : `https://${athleticWebsite}/sports/bsb/coaches/index`;
+            }
         }
 
         await importDataToExcel({
@@ -255,7 +284,7 @@ const main = async () => {
             coachesUrl,
             staffDir,
             recruitForm
-        }, './baseball_data.xlsx')
+        }, './baseball_data_2.xlsx')
 
         console.log(`${i}. ${school} - ${recruitForm}`)
     }
