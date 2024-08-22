@@ -222,10 +222,10 @@ const main = async () => {
     const baseballExcelData = readExcelFile('./baseball_data.xlsx');
     const browser = await puppeteer.launch({
         headless: true,
-        // args: [
-        //     '--no-sandbox',
-        //     '--disable-setuid-sandbox',
-        // ]
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+        ]
     });
     const page = await browser.newPage();
 
@@ -290,7 +290,7 @@ const main = async () => {
     }
 
 
-    fs.writeFileSync('./baseball_urls.txt', websiteUrls.join('\n'), 'utf8');
+    // fs.writeFileSync('./baseball_urls.txt', websiteUrls.join('\n'), 'utf8');
 
 
     await browser.close();
