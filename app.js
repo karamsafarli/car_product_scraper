@@ -75,6 +75,7 @@ const importDataToExcel = async (data, filePath) => {
             'product_ean',
             'product_sku',
             'product_manufacturer_name',
+            'KFZTEILE NAME',
             'Beschreibung',
             'OENummer Hersteller',
             'K-Types',
@@ -92,6 +93,7 @@ const importDataToExcel = async (data, filePath) => {
             'product_ean',
             'product_sku',
             'product_manufacturer_name',
+            'KFZTEILE NAME',
             'Beschreibung'
         ]);
 
@@ -100,6 +102,7 @@ const importDataToExcel = async (data, filePath) => {
             'product_ean',
             'product_sku',
             'product_manufacturer_name',
+            'KFZTEILE NAME',
             'OENummer Hersteller'
         ]);
 
@@ -113,6 +116,7 @@ const importDataToExcel = async (data, filePath) => {
         returnValid(data.product_ean),
         returnValid(data.product_sku),
         returnValid(data.product_manufacturer_name),
+        returnValid(data.productName),
         returnValid(data.joinedDetailContent),
         returnValid(data.joinedBoxRefNums),
         returnValid(data.prodKtypes),
@@ -132,6 +136,7 @@ const importDataToExcel = async (data, filePath) => {
             returnValid(data.product_ean),
             returnValid(data.product_sku),
             returnValid(data.product_manufacturer_name),
+            returnValid(data.productName),
             sdc
         ]);
     });
@@ -142,6 +147,7 @@ const importDataToExcel = async (data, filePath) => {
             returnValid(data.product_ean),
             returnValid(data.product_sku),
             returnValid(data.product_manufacturer_name),
+            returnValid(data.productName),
             brn
         ]);
     });
@@ -304,12 +310,9 @@ const scrapeProductDetail = async (page) => {
             // alfa romeo 145 1370cm3, 76kW/103PS
             // alfa romeo 145 1370cm3, 76kW/103PS
 
-            console.log([...KTYPESMAP.entries()].filter((e) => e[0].includes('alfa romeo 145')))
             artInfoDetails.forEach((aid) => {
                 const carModel = getPartBeforeParenthesis(aid.carModel);
                 const ktype = KTYPESMAP.get(`${carModel.toLowerCase()} ${removeZyl(aid.carEngineParams)}`);
-                console.log(`${carModel.toLowerCase()} ${removeZyl(aid.carEngineParams)}`);
-                console.log(ktype)
                 if (ktype) {
                     kTypesFromScrapedProds.push(ktype);
                 }
@@ -328,15 +331,27 @@ const scrapeProductDetail = async (page) => {
 
 const main = async () => {
     const PRODUCTS = readExcelFile('./eanlist.xls');
-    let browser = await puppeteer.launch({ headless: false });
+    let browser = await puppeteer.launch({
+        headless: true,
+        // args: [
+        //     '--no-sandbox',
+        //     '--disable-setuid-sandbox',
+        // ]
+    });
 
 
-    for (let i = 0; i < 100000; i++) {
+    for (let i = 0; i < 20000; i++) {
         try {
             if (i % 50 === 0) {
                 console.clear();
                 await browser.close();
-                browser = await puppeteer.launch({ headless: false });
+                browser = await puppeteer.launch({
+                    headless: true,
+                    // args: [
+                    //     '--no-sandbox',
+                    //     '--disable-setuid-sandbox',
+                    // ]
+                });
             }
             const { product_ean, product_sku, product_manufacturer_name, product_name } = PRODUCTS[i];
             if (!product_ean || product_ean?.length === 0) {
@@ -350,13 +365,13 @@ const main = async () => {
             const pageUrl = `https://www.kfzteile24.de/artikelsuche?search=${product_ean}&searchType=artnrOenr`;
             const page = await browser.newPage();
 
-            await page.setDefaultTimeout(18000);
+            await page.setDefaultTimeout(15000);
 
             await page.goto(pageUrl);
 
             const prodDetails = await scrapeProductDetail(page);
 
-            let filePath = `final_products_${Math.ceil((i + 1 - 50000) / 500)}.xlsx`
+            let filePath = `final_products_${Math.ceil((i + 1) / 500)}.xlsx`
 
             await importDataToExcel({
                 product_ean,

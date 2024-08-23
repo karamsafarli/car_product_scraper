@@ -13,7 +13,7 @@ const getRecruitFormLink = async (page, url, idx) => {
 
         // websiteUrls.push(`${idx}. ${title} - ${url}`)
 
-        await page.waitForSelector('h1');
+        // await page.waitForSelector('h1');
 
         const isNotFound = await page.evaluate(() => {
             const notFoundElement = [...document.querySelectorAll('h1')].find(el => el?.textContent.trim().toLowerCase().includes('page not found'));
@@ -24,8 +24,9 @@ const getRecruitFormLink = async (page, url, idx) => {
         });
 
 
+
         if (isNotFound) {
-            return { recruitFormLinks: '', isCorrectUrl: true };
+            return { recruitFormLinks: '', isCorrectUrl: false };
         }
 
 
@@ -218,8 +219,19 @@ const importDataToExcel = async (data, filePath) => {
 }
 
 
+function getBaseUrl(url) {
+    try {
+        const parsedUrl = new URL(url);
+        return `${parsedUrl.protocol}//${parsedUrl.host}`;
+    } catch (error) {
+        console.error('Invalid URL:', error);
+        return url;
+    }
+}
+
+
 const main = async () => {
-    const baseballExcelData = readExcelFile('./baseball_data.xlsx');
+    const baseballExcelData = readExcelFile('./baseball_data_2.xlsx');
     const browser = await puppeteer.launch({
         headless: true,
         args: [
@@ -254,22 +266,24 @@ const main = async () => {
         const city = baseballExcelData[i]['City'];
         const state = baseballExcelData[i]['State'];
         const schoolWebsite = baseballExcelData[i]['School Website'];
-        const athleticWebsite = baseballExcelData[i]['Athletic Websites'];
+        let athleticWebsite = baseballExcelData[i]['Athletic Websites'];
         const staffDir = baseballExcelData[i]['Staff Directory'];
         let rosterUrl = '',
             coachesUrl = '',
             recruitForm = baseballExcelData[i]['Baseball Recruitment Form'];
 
         if (athleticWebsite && !recruitForm) {
-            rosterUrl = athleticWebsite.includes('https') ? `${athleticWebsite}/sports/baseball/roster` : `https://${athleticWebsite}/sports/baseball/roster`;
-            coachesUrl = athleticWebsite.includes('https') ? `${athleticWebsite}/sports/baseball/coaches` : `https://${athleticWebsite}/sports/baseball/coaches`;
+            athleticWebsite = athleticWebsite.includes('https') ? athleticWebsite : `https://${athleticWebsite}`;
+            const baseURL = getBaseUrl(athleticWebsite);
+            rosterUrl = `${baseURL}/sports/baseball/roster`;
+            coachesUrl = `${baseURL}/sports/baseball/coaches`;
             const { recruitFormLinks, isCorrectUrl } = await getRecruitFormLink(page, rosterUrl, i);
 
             recruitForm = recruitFormLinks;
 
             if (!isCorrectUrl) {
-                rosterUrl = athleticWebsite.includes('https') ? `${athleticWebsite}/sports/bsb/2024-25/roster` : `https://${athleticWebsite}/sports/bsb/2024-25/roster`;
-                coachesUrl = athleticWebsite.includes('https') ? `${athleticWebsite}/sports/bsb/coaches/index` : `https://${athleticWebsite}/sports/bsb/coaches/index`;
+                rosterUrl = `${baseURL}/sports/bsb/2024-25/roster`;
+                coachesUrl = `${baseURL}/sports/bsb/coaches/index`;
             }
         }
 
@@ -284,7 +298,7 @@ const main = async () => {
             coachesUrl,
             staffDir,
             recruitForm
-        }, './baseball_data_2.xlsx')
+        }, './baseball_data_3.xlsx')
 
         console.log(`${i}. ${school} - ${recruitForm}`)
     }
