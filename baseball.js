@@ -49,10 +49,10 @@ const getRecruitFormLink = async (page, url, idx) => {
         await page.waitForSelector('nav');
 
         const recruitFormLinks = await page.evaluate(() => {
-            let nav = [...document.querySelectorAll('nav')];
-            nav = nav[nav.length - 1];
+            // let nav = [...document.querySelectorAll('nav')];
+            // nav = nav[nav.length - 1];
 
-            const links = [...nav?.querySelectorAll('a')];
+            const links = [...document.querySelectorAll('nav a')];
 
             for (let i = links.length - 1; i >= 0; i--) {
                 if (
@@ -231,34 +231,34 @@ function getBaseUrl(url) {
 
 
 const main = async () => {
-    const baseballExcelData = readExcelFile('./baseball_data_2.xlsx');
-    const browser = await puppeteer.launch({
-        headless: true,
-        args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-        ]
-    });
-    const page = await browser.newPage();
+    const baseballExcelData = readExcelFile('./bsb_data.xlsx');
+    // const browser = await puppeteer.launch({
+    //     headless: true,
+    //     args: [
+    //         '--no-sandbox',
+    //         '--disable-setuid-sandbox',
+    //     ]
+    // });
+    // const page = await browser.newPage();
 
-    await page.setViewport({
-        width: 1280,
-        height: 800
-    });
+    // await page.setViewport({
+    //     width: 1280,
+    //     height: 800
+    // });
 
-    await page.setDefaultTimeout(15000);
+    // await page.setDefaultTimeout(15000);
 
-    // let requestCount = 0;
-    await page.setRequestInterception(true);
-    page.on('request', (request) => {
-        const resourceType = request.resourceType();
+    // // let requestCount = 0;
+    // await page.setRequestInterception(true);
+    // page.on('request', (request) => {
+    //     const resourceType = request.resourceType();
 
-        if (['image', 'stylesheet', 'font'].includes(resourceType)) {
-            request.abort();
-        } else {
-            request.continue();
-        }
-    });
+    //     if (['image', 'stylesheet', 'font'].includes(resourceType)) {
+    //         request.abort();
+    //     } else {
+    //         request.continue();
+    //     }
+    // });
 
     for (let i = 0; i < baseballExcelData.length; i++) {
         const school = baseballExcelData[i]['School'];
@@ -268,24 +268,31 @@ const main = async () => {
         const schoolWebsite = baseballExcelData[i]['School Website'];
         let athleticWebsite = baseballExcelData[i]['Athletic Websites'];
         const staffDir = baseballExcelData[i]['Staff Directory'];
-        let rosterUrl = '',
-            coachesUrl = '',
+        let rosterUrl = baseballExcelData[i]['2024-25 Roster URL'],
+            coachesUrl = baseballExcelData[i]['2024-25 Coaches URL'],
             recruitForm = baseballExcelData[i]['Baseball Recruitment Form'];
 
-        if (athleticWebsite && !recruitForm) {
-            athleticWebsite = athleticWebsite.includes('https') ? athleticWebsite : `https://${athleticWebsite}`;
+        if (athleticWebsite && !rosterUrl && !coachesUrl) {
+            athleticWebsite = athleticWebsite.includes('http') ? athleticWebsite : `https://${athleticWebsite}`;
             const baseURL = getBaseUrl(athleticWebsite);
             rosterUrl = `${baseURL}/sports/baseball/roster`;
             coachesUrl = `${baseURL}/sports/baseball/coaches`;
-            const { recruitFormLinks, isCorrectUrl } = await getRecruitFormLink(page, rosterUrl, i);
-
-            recruitForm = recruitFormLinks;
-
-            if (!isCorrectUrl) {
-                rosterUrl = `${baseURL}/sports/bsb/2024-25/roster`;
-                coachesUrl = `${baseURL}/sports/bsb/coaches/index`;
-            }
         }
+
+        // if (athleticWebsite && !recruitForm && coachesUrl) {
+        //     // athleticWebsite = athleticWebsite.includes('https') ? athleticWebsite : `https://${athleticWebsite}`;
+        //     // const baseURL = getBaseUrl(athleticWebsite);
+        //     // rosterUrl = `${baseURL}/sports/baseball/roster`;
+        //     // coachesUrl = `${baseURL}/sports/baseball/coaches`;
+        //     // const { recruitFormLinks } = await getRecruitFormLink(page, coachesUrl, i);
+
+        //     // recruitForm = recruitFormLinks;
+
+        //     // if (!isCorrectUrl) {
+        //     //     rosterUrl = `${baseURL}/sports/bsb/2024-25/roster`;
+        //     //     coachesUrl = `${baseURL}/sports/bsb/coaches/index`;
+        //     // }
+        // }
 
         await importDataToExcel({
             school,
@@ -298,7 +305,7 @@ const main = async () => {
             coachesUrl,
             staffDir,
             recruitForm
-        }, './baseball_data_3.xlsx')
+        }, './baseball_data_last.xlsx')
 
         console.log(`${i}. ${school} - ${recruitForm}`)
     }

@@ -262,7 +262,8 @@ const scrapeProductDetail = async (page) => {
 
 
         let isArtInfoFound = await page.evaluate(() => {
-            const artInfoBoxBtn = document.querySelector('div[data-content-id="artInfoBoxTypes"]');
+            const artInfoTabs = [...document.querySelectorAll('.artInfoTab')];
+            const artInfoBoxBtn = artInfoTabs.find((ait) => ait.querySelector('span.noneWrap')?.textContent.trim() === 'Fahrzeugtypen' && !ait.classList.contains('active'));
             if (artInfoBoxBtn) {
                 artInfoBoxBtn.click();
                 return true;
@@ -307,8 +308,7 @@ const scrapeProductDetail = async (page) => {
 
                 return artInfo;
             });
-            // alfa romeo 145 1370cm3, 76kW/103PS
-            // alfa romeo 145 1370cm3, 76kW/103PS
+           
 
             artInfoDetails.forEach((aid) => {
                 const carModel = getPartBeforeParenthesis(aid.carModel);
@@ -330,7 +330,7 @@ const scrapeProductDetail = async (page) => {
 }
 
 const main = async () => {
-    const PRODUCTS = readExcelFile('./eanlist.xls');
+    const PRODUCTS = readExcelFile('./Line_50001-to-100000.xlsx');
     let browser = await puppeteer.launch({
         headless: true,
         // args: [
@@ -340,7 +340,7 @@ const main = async () => {
     });
 
 
-    for (let i = 0; i < 20000; i++) {
+    for (let i = 10000; i < 20000; i++) {
         try {
             if (i % 50 === 0) {
                 console.clear();
@@ -362,6 +362,7 @@ const main = async () => {
             // const prodModels = PRODUCTS[i]['OENummer Hersteller'];
             // const prodKtypes = PRODUCTS[i]['K-Types'];
             // const prodPDF = PRODUCTS[i]['Document Links'];
+            // const pageUrl = `https://www.kfzteile24.de/artikelsuche?search=${product_ean}&searchType=artnrOenr`;
             const pageUrl = `https://www.kfzteile24.de/artikelsuche?search=${product_ean}&searchType=artnrOenr`;
             const page = await browser.newPage();
 
