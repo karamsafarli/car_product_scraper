@@ -330,27 +330,27 @@ const scrapeProductDetail = async (page) => {
 }
 
 const main = async () => {
-    const PRODUCTS = readExcelFile('./Line_50001-to-100000.xlsx');
+    const PRODUCTS = readExcelFile('./Line_100001-to-150000.xlsx');
     let browser = await puppeteer.launch({
         headless: true,
-        // args: [
-        //     '--no-sandbox',
-        //     '--disable-setuid-sandbox',
-        // ]
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+        ]
     });
 
 
-    for (let i = 10000; i < 20000; i++) {
+    for (let i = 0; i < 20000; i++) {
         try {
             if (i % 50 === 0) {
-                console.clear();
+             
                 await browser.close();
                 browser = await puppeteer.launch({
                     headless: true,
-                    // args: [
-                    //     '--no-sandbox',
-                    //     '--disable-setuid-sandbox',
-                    // ]
+                    args: [
+                        '--no-sandbox',
+                        '--disable-setuid-sandbox',
+                    ]
                 });
             }
             const { product_ean, product_sku, product_manufacturer_name, product_name } = PRODUCTS[i];
