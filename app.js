@@ -375,7 +375,7 @@ const main = async () => {
             const pageUrl = `https://www.kfzteile24.de/artikelsuche?search=${product_ean}&searchType=artnrOenr`;
             const page = await browser.newPage();
 
-            await page.setDefaultTimeout(15000);
+            await page.setDefaultTimeout(10000);
 
             await page.goto(pageUrl);
 
