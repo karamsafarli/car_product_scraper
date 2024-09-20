@@ -205,6 +205,15 @@ const scrapeProductDetail = async (page) => {
         const productDetails = await page.evaluate(() => {
             const productName = document.querySelector('.art-name span.ml.anchor')?.textContent.trim();
             const detailContent = document.querySelector('.art-articleCriteria')?.textContent.trim();
+
+            const fakeHoverEvent = new MouseEvent('mouseover', {
+                bubbles: true,
+                cancelable: true,
+                view: window
+            });
+
+            [...document.querySelectorAll('.pdfLink')].forEach((link) => link.dispatchEvent(fakeHoverEvent))
+
             const pdfLinks = [...document.querySelectorAll('.pdfLink')].map(pdf => pdf?.href)?.join(' , ');
 
             const boxRefNumbers = [];
@@ -242,7 +251,7 @@ const scrapeProductDetail = async (page) => {
                 const subtitle = art.querySelector('span')?.textContent?.trim();
                 return `${title} ${subtitle}`
             })?.join('; ');
-           
+
 
             return {
                 productName,
@@ -308,7 +317,7 @@ const scrapeProductDetail = async (page) => {
 
                 return artInfo;
             });
-           
+
 
             artInfoDetails.forEach((aid) => {
                 const carModel = getPartBeforeParenthesis(aid.carModel);
@@ -333,24 +342,24 @@ const main = async () => {
     const PRODUCTS = readExcelFile('./Line_100001-to-150000.xlsx');
     let browser = await puppeteer.launch({
         headless: true,
-        args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-        ]
+        // args: [
+        //     '--no-sandbox',
+        //     '--disable-setuid-sandbox',
+        // ]
     });
 
 
-    for (let i = 0; i < 20000; i++) {
+    for (let i = 20000; i < 30000; i++) {
         try {
             if (i % 50 === 0) {
-             
+
                 await browser.close();
                 browser = await puppeteer.launch({
                     headless: true,
-                    args: [
-                        '--no-sandbox',
-                        '--disable-setuid-sandbox',
-                    ]
+                    // args: [
+                    //     '--no-sandbox',
+                    //     '--disable-setuid-sandbox',
+                    // ]
                 });
             }
             const { product_ean, product_sku, product_manufacturer_name, product_name } = PRODUCTS[i];
