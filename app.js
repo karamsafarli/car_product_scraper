@@ -339,7 +339,7 @@ const scrapeProductDetail = async (page) => {
 }
 
 const main = async () => {
-    const PRODUCTS = readExcelFile('./Line_100001-to-150000.xlsx');
+    const PRODUCTS = readExcelFile('./Line_150001-to-200000.xlsx');
     let browser = await puppeteer.launch({
         headless: true,
         // args: [
@@ -349,7 +349,7 @@ const main = async () => {
     });
 
 
-    for (let i = 20000; i < 30000; i++) {
+    for (let i = 0; i < 20000; i++) {
         try {
             if (i % 50 === 0) {
 
