@@ -339,30 +339,32 @@ const scrapeProductDetail = async (page) => {
 }
 
 const main = async () => {
-    const PRODUCTS = readExcelFile('./Line_200001-to-250000.xlsx');
+    const PRODUCTS = readExcelFile('./Meyle_Missed_EAN_02.xls');
     let browser = await puppeteer.launch({
-        headless: true,
-        args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-        ]
+        headless: false,
+        // args: [
+        //     '--no-sandbox',
+        //     '--disable-setuid-sandbox',
+        // ]
     });
 
 
-    for (let i = 0; i < 10000; i++) {
+    for (let i = 0; i < PRODUCTS.length; i++) {
         try {
             if (i % 50 === 0) {
 
                 await browser.close();
                 browser = await puppeteer.launch({
-                    headless: true,
-                    args: [
-                        '--no-sandbox',
-                        '--disable-setuid-sandbox',
-                    ]
+                    headless: false,
+                    // args: [
+                    //     '--no-sandbox',
+                    //     '--disable-setuid-sandbox',
+                    // ]
                 });
             }
-            const { product_ean, product_sku, product_manufacturer_name, product_name } = PRODUCTS[i];
+            const { product_ean, product_sku, product_manufacturer_name } = PRODUCTS[i];
+            const product_name = PRODUCTS[i]['Product Name'];
+            
             if (!product_ean || product_ean?.length === 0) {
                 continue;
             }
@@ -375,7 +377,7 @@ const main = async () => {
             const pageUrl = `https://www.kfzteile24.de/artikelsuche?search=${product_ean}&searchType=artnrOenr`;
             const page = await browser.newPage();
 
-            await page.setDefaultTimeout(10000);
+            await page.setDefaultTimeout(15000);
 
             await page.goto(pageUrl);
 
